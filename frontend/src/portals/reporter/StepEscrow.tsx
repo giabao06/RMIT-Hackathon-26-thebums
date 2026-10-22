@@ -21,9 +21,9 @@ export function StepEscrow({ draft, update, now }: { draft: Draft; update: (patc
       aside={
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[14px]">
           <dt className="text-slate">Encryption</dt>
-          <dd>Tide policy-governed encryption, on this device</dd>
+          <dd>AES-256-GCM, on this device</dd>
           <dt className="text-slate">Key</dt>
-          <dd>Held by the Tide node network; no one holds it whole</dd>
+          <dd>Split across the stewards; no one holds it whole</dd>
           <dt className="text-slate">Opens when</dt>
           <dd>2 independent reports match and 2 of 3 stewards approve</dd>
           <dt className="text-slate">Deleted on</dt>

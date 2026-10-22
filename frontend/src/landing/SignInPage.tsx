@@ -6,6 +6,17 @@ import { BrandMark } from '@/components/BrandMark'
 import { useQuickExitKey } from './motion'
 import './landing.css'
 
+// Demo shortcuts for recording a walkthrough: only shown when VITE_DEMO_PASSWORD is set in a
+// local .env.local. That value ships in the page, so never set it on a real deployment.
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined
+const DEMO_ACCOUNTS = [
+  { email: 'admin@mock.safethreshold.test', title: 'Org admin', detail: 'People, settings, assign', to: ROUTES.admin },
+  { email: 'steward@mock.safethreshold.test', title: 'Steward 1', detail: 'Union', to: ROUTES.quorum },
+  { email: 'student1@mock.safethreshold.test', title: 'Steward 2', detail: 'NGO', to: ROUTES.quorum },
+  { email: 'student2@mock.safethreshold.test', title: 'Steward 3', detail: 'Oversight', to: ROUTES.quorum },
+  { email: 'staff@mock.safethreshold.test', title: 'Investigator', detail: 'Opens released cases', to: ROUTES.quorum },
+] as const
+
 export function SignInPage() {
   useQuickExitKey()
   const [email, setEmail] = useState('')
@@ -14,15 +25,19 @@ export function SignInPage() {
   const [busy, setBusy] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
-  async function submit(event: FormEvent) {
-    event.preventDefault()
+  async function signIn(address: string, secret: string, to: string) {
     setBusy(true)
     setError(null)
-    const { error: failed } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    const { error: failed } = await supabase.auth.signInWithPassword({ email: address.trim(), password: secret })
     setBusy(false)
     if (failed) return setError('That email and password do not match an account.')
     setPassword('')
-    navigate(ROUTES.quorum)
+    navigate(to)
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault()
+    void signIn(email, password, ROUTES.quorum)
   }
 
   return (
@@ -70,6 +85,17 @@ export function SignInPage() {
                 {busy ? 'Signing in…' : 'Sign in'} <span className="lp-dot" aria-hidden />
               </button>
             </div>
+
+            {DEMO_PASSWORD && (
+              <div className="si-choice" role="group" aria-label="Demo accounts">
+                {DEMO_ACCOUNTS.map((a) => (
+                  <button key={a.email} type="button" disabled={busy} onClick={() => void signIn(a.email, DEMO_PASSWORD, a.to)}>
+                    <b>{a.title}</b>
+                    <span>{a.detail}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <ul className="si-facts">
               <li>Your role is checked by the server on every request, not by this page.</li>

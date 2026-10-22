@@ -54,6 +54,8 @@ export async function submitReport(input: ReportInput): Promise<Receipt> {
   const keysRes = await fetch(endpoint(`/keys/stewards?org=${ORG_ID}`))
   if (!keysRes.ok) throw new InputError('The stewards are not set up yet, so reports cannot be sealed.')
   const { threshold, stewards } = (await keysRes.json()) as { threshold: number; stewards: { id: string; publicKey: string }[] }
+  // The server also requires every active steward to have a key and at least 3 stewards.
+  if (stewards.length < Math.max(3, threshold)) throw new InputError('Not enough stewards have set up their key yet, so reports cannot be sealed.')
 
   const body = {
     incidentDate: input.incidentDate,
