@@ -1,4 +1,4 @@
-.env
+.env.local
 .tide-pack/
 .taste-skill/
 node_modules/
