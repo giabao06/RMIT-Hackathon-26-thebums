@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
+import { useTideCloak } from '@tidecloak/react'
 import { cn } from 'cn'
 import { Link } from '@/app/Link'
 import { ROUTES } from '@/app/router'
+import { useTideConfigured } from '@/app/tideContext'
 import { useWorld } from '@/app/worldContext'
 import { ThresholdLock } from '@/components/ThresholdLock'
 import { REPORT_THRESHOLD, STEWARD_QUORUM } from '@/escrow/simulation'
@@ -9,7 +11,34 @@ import { InvestigatorWorkspace } from './InvestigatorWorkspace'
 import { NodeStrip } from './NodeStrip'
 import { StewardSeats } from './StewardSeats'
 
+const StewardLive = lazy(() => import('./StewardLive').then((m) => ({ default: m.StewardLive })))
+const InvestigatorLive = lazy(() => import('./InvestigatorLive').then((m) => ({ default: m.InvestigatorLive })))
+const API_URL = import.meta.env.VITE_API_URL as string | undefined
+
+/** With a Tide realm and the API, stewards use the real backend; otherwise the simulation. */
 export function QuorumPortal() {
+  const tide = useTideConfigured()
+  if (tide && API_URL) {
+    return (
+      <Suspense fallback={<p className="text-[14px] text-slate">Connecting to Tide…</p>}>
+        <LiveQuorum apiUrl={API_URL} />
+      </Suspense>
+    )
+  }
+  return <SimulatedQuorum />
+}
+
+// UI routing only; the API checks the role on every request.
+function LiveQuorum({ apiUrl }: { apiUrl: string }) {
+  const { authenticated, hasRealmRole } = useTideCloak()
+  return authenticated && hasRealmRole('investigator') && !hasRealmRole('steward') ? (
+    <InvestigatorLive apiUrl={apiUrl} />
+  ) : (
+    <StewardLive apiUrl={apiUrl} />
+  )
+}
+
+function SimulatedQuorum() {
   const { snapshot } = useWorld()
   const eligible = snapshot.cases.filter((c) => c.eligible)
   const waiting = snapshot.cases.filter((c) => !c.eligible)
