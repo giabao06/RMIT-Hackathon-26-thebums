@@ -1,7 +1,17 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createRemote } from '@/escrow/remote'
 import { EscrowWorld } from '@/escrow/simulation'
 import { devScenario, runScenario } from './scenarios'
 import { WorldContext } from './worldContext'
+
+const API_URL = import.meta.env.VITE_API_URL as string | undefined
+const ORG_ID = import.meta.env.VITE_ORG_ID as string | undefined
+
+async function createWorld(): Promise<EscrowWorld> {
+  const w = await EscrowWorld.create()
+  if (API_URL && ORG_ID) w.remote = createRemote(API_URL, ORG_ID)
+  return w
+}
 
 /**
  * Creates the simulated escrow (server, five nodes, three stewards) for this tab. It lives in
@@ -14,7 +24,7 @@ export function WorldProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    EscrowWorld.create()
+    createWorld()
       .then(async (w) => {
         const scenario = devScenario()
         if (scenario) await runScenario(w, scenario)
@@ -27,7 +37,7 @@ export function WorldProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const reset = useCallback(async () => {
-    setWorld(await EscrowWorld.create())
+    setWorld(await createWorld())
     setGeneration((g) => g + 1)
   }, [])
 

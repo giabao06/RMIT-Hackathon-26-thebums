@@ -46,6 +46,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Lets the browser call the backend without CORS: /api/reports -> http://localhost:3000/reports
+    proxy: { '/api': { target: 'http://localhost:3000', rewrite: (p) => p.replace(/^\/api/, '') } },
   },
   test: {
     environment: 'node',
