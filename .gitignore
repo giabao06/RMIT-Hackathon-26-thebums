@@ -1,1 +1,8 @@
 .env
+.tide-pack/
+.taste-skill/
+node_modules/
+
+# Local TideCloak state (adapter export)
+frontend/public/tidecloak.json
+data/

@@ -80,30 +80,53 @@ With a normal login plus backend, the admin is the trust hole. TideCloak splits 
 
 ```
 backend/    Server code and database (database/database.ts, database/migration)
-frontend/   React + TypeScript + Vite app
+frontend/   React + TypeScript + Vite app: the three portals and the escrow engine
+  src/escrow/    Escrow engine: encryption, blinded tokens, key shares, node checks (tested)
+  src/portals/   Reporter, Admin IT, Steward quorum & investigator, public audit log
 .env.example  Required environment variables
 ```
 
 ## Setup
 
-Requirements: Node.js, a Supabase project, and a TideCloak realm.
+Requirements: Node.js 22+. Docker and a TideCloak realm only for real Tide sign-in.
 
-1. Copy the env template and fill it in:
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173
+npm test         # escrow engine tests (Vitest)
+npm run build
+npm run lint
+```
 
-   ```bash
-   cp .env.example .env
-   ```
+### The demo
 
-   Variables: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWKS_URL`.
+The app runs the whole escrow in the browser tab, with real cryptography (AES-256-GCM, a keyed HMAC-SHA-256 blinded token, PBKDF2 for the withdrawal passphrase, ECDSA P-256 steward signatures, Shamir sharing of each report key across five nodes). The five Tide nodes are simulated in the tab; reloading starts an empty escrow.
 
-2. Run the frontend:
+1. **Report misconduct**: click *Demo: first student*, continue through the three steps, *Generate* a passphrase, *Seal report*.
+2. **Admin IT view**: only ciphertext and hashed tokens. *Guess names from the staff list* finds 0 matches; *Attempt force decrypt / override* is refused by all five nodes.
+3. Back in **Report misconduct**: *File another report*, *Demo: second student*, seal. The case reaches the threshold (2/2).
+4. **Steward quorum**: one steward approves, one holds; nothing opens. A second approval releases the key and both reports open side by side for the investigator.
+5. **Public audit log**: every action, no content. The sidebar can fast-forward the clock 12 months or reset the demo.
 
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+Press **Esc** (or *Quick exit*) on the reporter portal to leave for google.com immediately.
 
-Other frontend scripts: `npm run build`, `npm run lint`.
+### Connecting TideCloak
 
-The backend has no run script yet.
+The frontend already carries the Tide wiring: `@tidecloak/react` with DPoP (`ES256`, strict), `public/tide_dpop_auth.html` (byte-exact, verified), the `/tide_dpop/*` relay with its CSP headers (in `vite.config.ts`), silent SSO and the `/auth/redirect` callback. When `frontend/public/tidecloak.json` exists, the app loads the Tide SDK and shows *Sign in with Tide*; without it, it runs as a simulation and says so.
+
+To bootstrap a local realm (needs Docker, `curl`, `jq`, and on macOS GNU sed: `brew install gnu-sed`; `npm run tide:init` puts it first on `PATH`):
+
+```bash
+mkdir -p .tide-pack && curl -fsSL "https://mcp.tide.org/pack/templates.tgz" | tar -xz -C .tide-pack
+cd frontend
+npm run tide:init   # reads frontend/.env: TIDE_LICENSE_EMAIL, TIDE_TERMS_ACCEPTED, KC_BOOTSTRAP_ADMIN_PASSWORD, REALM_NAME…
+```
+
+Only run it after reading and accepting Tide's Terms & Conditions (https://tide.org/legal).
+
+### Not built yet
+
+- The backend: the in-tab `OperatorServer` stands in for it. A real one must verify the Tide JWT and DPoP proof on every route; UI role checks are hints only.
+- Production blinding: the matching token should come from a threshold OPRF across the Tide nodes, so no node sees the name or holds the whole key. The simulation holds that key in one place.
+- Shares encrypted to the investigator's key, and investigator access through a Tide decryption policy per case (Tide's `RelationshipAttestation:1`, with the steward quorum as the realm's admin threshold).

@@ -6,7 +6,7 @@ SafeThreshold: anonymous escrow platform for misconduct reports (RMIT Hackathon 
 
 ## Layout
 
-- `frontend/`: React + TypeScript + Vite (`npm run dev | build | lint`).
+- `frontend/`: React + TypeScript + Vite + Tailwind v4 + shadcn/ui (`npm run dev | build | lint | test`). `src/escrow/` is the escrow engine; `src/portals/` the three portals and the audit log.
 - `backend/`: server code; `database/database.ts` and `database/migration`. No run script yet.
 - `.env` / `.env.example`: Supabase variables. Never commit `.env`.
 
@@ -33,7 +33,7 @@ SafeThreshold: anonymous escrow platform for misconduct reports (RMIT Hackathon 
 
 - TypeScript strict. React function components, PascalCase component files, camelCase for everything else.
 - Keep changes small and focused; imperative commit messages.
-- No test framework is configured yet. When adding logic around matching, withdrawal or expiry, add a test.
+- Tests: Vitest in `frontend/` (`npm test`). When adding logic around matching, withdrawal or expiry, add a test in `src/escrow/*.test.ts`.
 
 ## Open questions
 
