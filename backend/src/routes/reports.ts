@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { Router } from "express";
 import { SubjectError, canonicalSubject } from "../subject";
+import { logRefusal } from "../services/audit";
 import { blindToken } from "../token";
 
 export interface Rpc {
@@ -81,6 +82,7 @@ export function reportsRouter(db: Rpc, pepper: Buffer): Router {
       const { data: removed } = await db.rpc("withdraw_identity", { p_report: req.params.id, p_withdraw_hash: hash });
       return res.json({ removed: removed === "removed" ? "contact" : "nothing" });
     }
+    logRefusal(db, "forgery_refused"); // well-formed id and proof that match no report
     res.status(404).json({ error: "not found" });
   });
 
