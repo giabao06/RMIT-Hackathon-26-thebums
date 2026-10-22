@@ -29,6 +29,16 @@ SafeThreshold: anonymous escrow platform for misconduct reports (RMIT Hackathon 
 - **Steward**: independent approver (Student Union, NGO, oversight body); 3–5, rotatable.
 - **Investigator**: independent party who receives decrypted files.
 
+## TideCloak rules (details in [docs/tidecloak.md](docs/tidecloak.md))
+
+- Never generate, assemble, store or export a whole key for Tide operations (I-01). Every key operation needs T or more nodes (I-02).
+- Reports use **policy-governed VVK encryption** (`IAMService` + signed Forseti policy), not self-encryption: self-encrypted data can only be decrypted by its author.
+- Custom Forseti contracts are written and compile-checked here but deployed by the Tide team. Never upload one.
+- IGA governs admin changes (roles, stewards). Its quorum is separate from the steward release quorum.
+- With IGA on, a `2xx` means accepted, not applied. Verify state after every admin mutation.
+- The frontend `escrow/` simulation is a stand-in for the node network. Don't ship it as the production key path.
+- Realm setup order is licence → IGA → E2EE. Licence email, terms agreement and hosting choice (Docker or Skycloak) are the team's decisions.
+
 ## Conventions
 
 - TypeScript strict. React function components, PascalCase component files, camelCase for everything else.

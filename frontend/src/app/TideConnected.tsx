@@ -5,7 +5,8 @@
 import type { ReactNode } from 'react'
 import { TideCloakContextProvider, useAuthCallback, useTideCloak } from '@tidecloak/react'
 import { Button } from '@/components/ui/button'
-import { ROUTES } from './router'
+import { signInAs, type Member } from './membership'
+import { ROUTES, navigate } from './router'
 
 const PORTAL_ROLES = ['reporter', 'steward', 'investigator'] as const
 
@@ -38,6 +39,35 @@ export function ConnectedAccount() {
         Sign out
       </Button>
     </span>
+  )
+}
+
+/** The sign-in page's action when a realm is connected. The reporter API checks the role itself. */
+export function TideSignIn({ member }: { member: Member }) {
+  const { isInitializing, initError, authenticated, login, hasRealmRole } = useTideCloak()
+  if (initError) return <span className="si-error">Tide unavailable: {initError.message}</span>
+  if (isInitializing) return <span className="si-hint">Connecting to Tide…</span>
+  if (!authenticated) {
+    return (
+      <button type="button" className="lp-btn" onClick={() => void login()}>
+        Continue with Tide as {member}
+      </button>
+    )
+  }
+  if (!hasRealmRole('reporter')) {
+    return <span className="si-error">This account has no reporter role yet. Ask the realm admin to grant it.</span>
+  }
+  return (
+    <button
+      type="button"
+      className="lp-btn"
+      onClick={() => {
+        signInAs(member)
+        navigate(ROUTES.report)
+      }}
+    >
+      Go to the report form
+    </button>
   )
 }
 

@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { Clock, Database, FilePlus2, KeyRound, Menu, RotateCcw, ScrollText } from 'lucide-react'
 import { cn } from 'cn'
 import { Link } from '@/app/Link'
-import { ROUTES } from '@/app/router'
+import { signOut, useMember } from '@/app/membership'
+import { ROUTES, navigate } from '@/app/router'
 import { TideAccount } from '@/app/TideAccount'
 import { useWorld } from '@/app/worldContext'
 import { BrandMark } from '@/components/BrandMark'
@@ -35,6 +36,7 @@ export function AppShell({ path, children }: { path: string; children: ReactNode
           </Button>
           <span className="truncate text-[15px] font-semibold lg:hidden">{current?.label ?? 'SafeThreshold'}</span>
           <div className="ml-auto flex items-center gap-3">
+            <MemberBadge />
             <span className="hidden sm:inline">
               <TideAccount />
             </span>
@@ -69,13 +71,13 @@ function SidebarContent({ path }: { path: string }) {
 
   return (
     <>
-      <div className="flex items-center gap-2.5 px-2 pt-1 pb-5">
+      <Link href={ROUTES.home} className="flex items-center gap-2.5 rounded-lg px-2 pt-1 pb-5" aria-label="SafeThreshold home">
         <BrandMark />
         <div className="leading-tight">
           <div className="text-[15px] font-semibold">SafeThreshold</div>
           <div className="text-[12px] text-chrome-muted">University pilot</div>
         </div>
-      </div>
+      </Link>
 
       <nav aria-label="Portals" className="flex flex-col gap-0.5">
         {NAV.map(({ href, label, icon: Icon }) => {
@@ -126,5 +128,26 @@ function SidebarContent({ path }: { path: string }) {
         </p>
       </div>
     </>
+  )
+}
+
+/** The RMIT group the reporter signed in as. The address itself was never kept. */
+function MemberBadge() {
+  const member = useMember()
+  if (!member) return null
+  return (
+    <span className="flex items-center gap-2 text-[13px] text-chrome-muted">
+      <span className="hidden sm:inline">Signed in as RMIT {member}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          signOut()
+          navigate(ROUTES.home)
+        }}
+      >
+        Sign out
+      </Button>
+    </span>
   )
 }
