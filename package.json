@@ -1,0 +1,20 @@
+{
+  "name": "rmit-hackathon-26-thebums",
+  "version": "1.0.0",
+  "description": "this is the challenge 2 of RMIT Hackathon 2026 of team Me & the Bums",
+  "homepage": "https://github.com/giabao06/RMIT-Hackathon-26-thebums#readme",
+  "bugs": {
+    "url": "https://github.com/giabao06/RMIT-Hackathon-26-thebums/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giabao06/RMIT-Hackathon-26-thebums.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
