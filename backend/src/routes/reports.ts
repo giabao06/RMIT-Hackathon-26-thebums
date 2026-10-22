@@ -21,12 +21,13 @@ export function reportsRouter(db: Rpc, pepper: Buffer): Router {
     HEX32.test(str(proof)) ? bytea(createHash("sha256").update(Buffer.from(str(proof), "hex")).digest()) : null;
 
   r.post("/", async (req, res) => {
-    const { org, subject, ciphertext, withdrawHash, lifespanMonths } = req.body ?? {};
+    const { org, subject, ciphertext, contact, withdrawHash, lifespanMonths } = req.body ?? {};
     const months = lifespanMonths === undefined ? null : Number(lifespanMonths);
     if (
       !UUID.test(str(org)) ||
       !HEX32.test(str(withdrawHash)) ||
       !B64.test(str(ciphertext)) ||
+      (contact !== undefined && !B64.test(str(contact))) ||
       (months !== null && !Number.isInteger(months))
     ) {
       return res.status(400).json({ error: "invalid report" });
@@ -52,6 +53,7 @@ export function reportsRouter(db: Rpc, pepper: Buffer): Router {
       p_ciphertext: bytea(data),
       p_withdraw_hash: `\\x${str(withdrawHash)}`,
       p_months: months,
+      p_contact: contact === undefined ? null : bytea(Buffer.from(str(contact), "base64")),
     });
     const row = (rows as { report_id: string; expires_at: string }[] | null)?.[0];
     if (error || !row) return res.status(400).json({ error: "could not store report" });
@@ -74,7 +76,11 @@ export function reportsRouter(db: Rpc, pepper: Buffer): Router {
     const { data: deleted } = await db.rpc("withdraw_report", { p_report: req.params.id, p_withdraw_hash: hash });
     if (deleted === true) return res.status(204).end();
     const { data: status } = await db.rpc("get_report_status", { p_report: req.params.id, p_withdraw_hash: hash });
-    if (status === "locked") return res.status(409).json({ error: "withdrawal is restricted after approval" });
+    if (status === "locked") {
+      // Past approval only the optional contact details can go.
+      const { data: removed } = await db.rpc("withdraw_identity", { p_report: req.params.id, p_withdraw_hash: hash });
+      return res.json({ removed: removed === "removed" ? "contact" : "nothing" });
+    }
     res.status(404).json({ error: "not found" });
   });
 

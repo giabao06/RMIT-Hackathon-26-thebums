@@ -1,5 +1,7 @@
 import express from "express";
 import { rateLimit } from "express-rate-limit";
+import { serviceAuth } from "./middleware/serviceAuth";
+import { casesRouter } from "./routes/cases";
 import { reportsRouter, type Rpc } from "./routes/reports";
 
 export function createApp(db: Rpc, pepper: Buffer) {
@@ -9,5 +11,6 @@ export function createApp(db: Rpc, pepper: Buffer) {
   // In-memory only: nothing about the caller is stored or logged.
   app.use("/reports", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }));
   app.use("/reports", reportsRouter(db, pepper));
+  app.use("/cases", serviceAuth(), casesRouter(db));
   return app;
 }

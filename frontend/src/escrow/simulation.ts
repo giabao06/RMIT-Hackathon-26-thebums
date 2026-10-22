@@ -4,6 +4,7 @@
  * Shamir over GF(256)); the node network is simulated in this browser tab. network.ts lists
  * the two simplifications against the production design.
  */
+import type { RemoteReports } from './remote'
 import { fromUtf8, randomBytes, shortId, toHex, utf8, type Bytes } from './bytes'
 import {
   fingerprint,
@@ -151,6 +152,8 @@ interface ReportPlaintext {
 }
 
 export class EscrowWorld {
+  /** Set when a backend is configured; the report is also sent there. */
+  remote: RemoteReports | null = null
   private readonly server = new OperatorServer()
   private readonly network: NodeNetwork
   private readonly stewards: Steward[]
@@ -265,6 +268,16 @@ export class EscrowWorld {
     const createdAt = this.now()
     const expiresAt = createdAt + input.lifespanMonths * MONTH_MS
 
+    await this.remote?.submit({
+      reportId,
+      subject: input.subject,
+      report,
+      contact,
+      attachments,
+      lifespanMonths: input.lifespanMonths,
+      passphrase: input.passphrase,
+    })
+
     // Transport: the shares go to the nodes; the nodes hand the token to the server.
     const deposit = await this.network.intake({
       reportId,
@@ -330,6 +343,9 @@ export class EscrowWorld {
     const salt = this.server.withdrawalSalt(reportId)
     if (!receipt || !salt || receipt.status !== 'sealed') {
       throw new InputError('There is no sealed report with that id.')
+    }
+    if (this.remote && (await this.remote.withdraw(reportId, passphrase)) === 'refused') {
+      throw new InputError('That passphrase does not match this report.')
     }
     const results = await this.network.withdraw(reportId, await passphraseProof(passphrase, salt))
 
