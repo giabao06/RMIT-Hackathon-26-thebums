@@ -64,7 +64,7 @@ With a normal login plus backend, the admin is the trust hole. Here each report 
 5. A steward stalls. The system keeps waiting for quorum and nobody can force it.
 6. Student A withdraws before the threshold. Their token disappears and the case is no longer eligible.
 
-![Demo video](./video-demo/video_demo_me&thebums.mp4)
+![Demo video](./video-demo/video_demo_me&thebums.gif)
 
 ## 7. Risks & mitigations
 
