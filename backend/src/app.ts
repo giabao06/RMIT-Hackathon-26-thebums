@@ -2,6 +2,7 @@ import express from "express";
 import { rateLimit } from "express-rate-limit";
 import { serviceAuth } from "./middleware/serviceAuth";
 import { requireRole } from "./middleware/tideAuth";
+import { adminRouter } from "./routes/admin";
 import { casesRouter } from "./routes/cases";
 import { investigatorRouter } from "./routes/investigator";
 import { stewardRouter } from "./routes/steward";
@@ -15,7 +16,8 @@ export function createApp(db: Rpc, pepper: Buffer) {
   app.use("/reports", rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }));
   app.use("/reports", reportsRouter(db, pepper));
   app.use("/cases", serviceAuth(), casesRouter(db));
-  app.use("/steward", requireRole("steward"), stewardRouter(db));
+  app.use("/admin", requireRole("org-admin"), adminRouter(db));
+  app.use("/steward",requireRole("steward"), stewardRouter(db));
   app.use("/investigator", requireRole("investigator"), investigatorRouter(db));
   return app;
 }

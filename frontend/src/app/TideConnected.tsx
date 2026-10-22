@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { signInAs, type Member } from './membership'
 import { ROUTES, navigate } from './router'
 
-const PORTAL_ROLES = ['reporter', 'steward', 'investigator'] as const
+const PORTAL_ROLES = ['reporter', 'steward', 'investigator', 'org-admin'] as const
 
 export function TideProvider({ config, children }: { config: Record<string, unknown>; children: ReactNode }) {
   // useDPoP goes inside config, not as a JSX prop, or DPoP is silently off.
