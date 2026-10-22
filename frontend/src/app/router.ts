@@ -1,4 +1,4 @@
-/** A minimal path router: four portals do not need a routing library. */
+/** A minimal path router: a landing page and four portals do not need a routing library. */
 import { useSyncExternalStore } from 'react'
 
 const listeners = new Set<() => void>()
@@ -25,6 +25,8 @@ export function navigate(to: string, options: { replace?: boolean } = {}): void 
 }
 
 export const ROUTES = {
+  home: '/',
+  signIn: '/sign-in',
   report: '/report',
   admin: '/admin',
   quorum: '/quorum',

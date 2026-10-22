@@ -1,16 +1,7 @@
 import { useEffect } from 'react'
 import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-const EXIT_URL = 'https://www.google.com/'
-
-/**
- * Leaves at once for a neutral page. location.replace swaps this page out of the history
- * entry, so Back does not return to the form. Esc does the same on the reporter portal.
- */
-function leaveNow(): void {
-  window.location.replace(EXIT_URL)
-}
+import { leaveNow } from './leaveNow'
 
 export function QuickExit({ escListens }: { escListens: boolean }) {
   useEffect(() => {
