@@ -48,3 +48,7 @@ export function equalBytes(a: Bytes, b: Bytes): boolean {
 export function shortId(prefix: string): string {
   return `${prefix}-${toHex(randomBytes(2)).toUpperCase()}`
 }
+
+export function fromBase64(text: string): Bytes {
+  return Uint8Array.from(atob(text), (c) => c.charCodeAt(0))
+}

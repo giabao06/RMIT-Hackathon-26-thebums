@@ -276,6 +276,7 @@ export class EscrowWorld {
       attachments,
       lifespanMonths: input.lifespanMonths,
       passphrase: input.passphrase,
+      plain: { body, files: input.attachments, contact: contactText || null },
     })
 
     // Transport: the shares go to the nodes; the nodes hand the token to the server.

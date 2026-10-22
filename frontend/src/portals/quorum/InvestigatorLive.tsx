@@ -20,6 +20,7 @@ interface SealedRow {
   id: string
   sealedAt: string
   ciphertext: string
+  contact?: string | null
 }
 
 export function InvestigatorLive({ apiUrl }: { apiUrl: string }) {

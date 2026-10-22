@@ -6,6 +6,7 @@
 import { toHex, utf8, type Bytes } from './bytes'
 import { passphraseProof, sha256, type Sealed } from './crypto'
 import type { Subject } from './subject'
+import { tideEncrypt, tideSealAvailable } from './tideCrypto'
 
 export interface RemoteSubmit {
   subject: Subject
@@ -14,6 +15,8 @@ export interface RemoteSubmit {
   attachments: Sealed[]
   lifespanMonths: number
   passphrase: string
+  /** Plaintext for the policy-governed Tide seal; used instead of the local bundle when available. */
+  plain: { body: unknown; files: { data: Bytes }[]; contact: string | null }
 }
 
 export interface RemoteReports {
@@ -55,15 +58,20 @@ export function createRemote(baseUrl: string, org: string): RemoteReports {
   const proofOf = async (passphrase: string) => passphraseProof(passphrase, SALT)
 
   return {
-    async submit({ reportId, subject, report, contact, attachments, lifespanMonths, passphrase }) {
+    async submit({ reportId, subject, report, contact, attachments, lifespanMonths, passphrase, plain }) {
+      const viaTide = tideSealAvailable()
+      const ciphertext = viaTide
+        ? await tideEncrypt(JSON.stringify({ body: plain.body, files: plain.files.map((f) => base64(f.data)) }))
+        : bundle([report, ...attachments])
+      const contactBlob = viaTide ? (plain.contact ? await tideEncrypt(plain.contact) : null) : contact ? blob(contact) : null
       const res = await fetch(`${baseUrl}/reports`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           org,
           subject,
-          ciphertext: base64(bundle([report, ...attachments])),
-          contact: contact ? base64(blob(contact)) : undefined,
+          ciphertext: base64(ciphertext),
+          contact: contactBlob ? base64(contactBlob) : undefined,
           withdrawHash: toHex(await sha256(await proofOf(passphrase))),
           lifespanMonths,
         }),

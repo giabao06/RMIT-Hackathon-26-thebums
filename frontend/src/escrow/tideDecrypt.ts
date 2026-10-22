@@ -1,3 +1,5 @@
+import { fromBase64, type Bytes } from './bytes'
+import { tideDecrypt, tideSealAvailable } from './tideCrypto'
 import type { OpenedReport } from './simulation'
 
 export class PolicyPending extends Error {
@@ -7,11 +9,27 @@ export class PolicyPending extends Error {
 }
 
 /**
- * The one place the investigator's device turns a sealed bundle into a report.
- * Replace the body with IAMService.doDecrypt (policy-governed VVK) once the Tide team deploys the
- * Forseti release policy. No key is ever held or rebuilt here (I-01); the simulation keys do not
- * apply to reports sealed through the real API.
+ * The one place the investigator's device turns a sealed bundle into a report: policy-governed
+ * VVK decryption (doDecrypt + the signed Forseti policy). The nodes release only after the steward
+ * quorum; no key is held or rebuilt here (I-01).
  */
-export async function decryptReport(sealed: { id: string; sealedAt: string; ciphertext: string }): Promise<OpenedReport> {
-  throw new PolicyPending(sealed.id)
+export async function decryptReport(sealed: { id: string; sealedAt: string; ciphertext: string; contact?: string | null }): Promise<OpenedReport> {
+  if (!tideSealAvailable()) throw new PolicyPending(sealed.id)
+  const body = JSON.parse(await tideDecrypt(fromBase64(sealed.ciphertext))) as {
+    body: { incidentDate: string; content: OpenedReport['content']; attachments: { name: string; type: string }[] }
+    files: string[]
+  }
+  return {
+    reportId: sealed.id,
+    sealedAt: Date.parse(sealed.sealedAt),
+    incidentDate: body.body.incidentDate,
+    content: body.body.content,
+    attachments: body.body.attachments.map((a, i): OpenedReport['attachments'][number] => ({
+      name: a.name,
+      type: a.type,
+      data: fromBase64(body.files[i] ?? '') as Bytes,
+    })),
+    contact: sealed.contact ? await tideDecrypt(fromBase64(sealed.contact)) : null,
+    combinedFrom: [],
+  }
 }

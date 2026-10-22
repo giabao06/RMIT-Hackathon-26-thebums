@@ -2,7 +2,8 @@
  * Everything that touches the Tide SDK. Loaded only when a realm is configured, so the
  * simulation alone does not download it.
  */
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { registerTideCrypto } from '@/escrow/tideCrypto'
 import { TideCloakContextProvider, useAuthCallback, useTideCloak } from '@tidecloak/react'
 import { Button } from '@/components/ui/button'
 import { signInAs, type Member } from './membership'
@@ -14,9 +15,20 @@ export function TideProvider({ config, children }: { config: Record<string, unkn
   // useDPoP goes inside config, not as a JSX prop, or DPoP is silently off.
   return (
     <TideCloakContextProvider config={{ ...config, useDPoP: { mode: 'strict', alg: 'ES256' } }}>
+      <TideCryptoBridge />
       {children}
     </TideCloakContextProvider>
   )
+}
+
+/** Hands the SDK's policy-governed encrypt/decrypt to the escrow code (see escrow/tideCrypto.ts). */
+function TideCryptoBridge() {
+  const { authenticated, doEncrypt, doDecrypt } = useTideCloak()
+  useEffect(() => {
+    registerTideCrypto(authenticated ? { encrypt: doEncrypt, decrypt: doDecrypt } : null)
+    return () => registerTideCrypto(null)
+  }, [authenticated, doEncrypt, doDecrypt])
+  return null
 }
 
 export function ConnectedAccount() {
