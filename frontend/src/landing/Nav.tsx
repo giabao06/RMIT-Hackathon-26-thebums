@@ -5,7 +5,7 @@ import { ROUTES } from '@/app/router'
 import { BrandMark } from '@/components/BrandMark'
 
 const DEMO_VIEWS = [
-  { href: ROUTES.signIn, label: 'Reporter', detail: 'Sign in, write and seal a report' },
+  { href: ROUTES.report, label: 'Reporter', detail: 'Write and seal a report, no account needed' },
   { href: ROUTES.admin, label: 'IT admin (adversary)', detail: 'Dump the database, try to force a decrypt' },
   { href: ROUTES.quorum, label: 'Steward quorum', detail: 'Two of three approve an eligible case' },
   { href: ROUTES.audit, label: 'Public audit log', detail: 'Every action, never any content' },
@@ -76,7 +76,7 @@ export function Nav() {
             ))}
           </ul>
         </div>
-        <Link href={ROUTES.signIn} className="lp-btn lp-nav-cta" onClick={close}>
+        <Link href={ROUTES.report} className="lp-btn lp-nav-cta" onClick={close}>
           File a report
         </Link>
       </nav>

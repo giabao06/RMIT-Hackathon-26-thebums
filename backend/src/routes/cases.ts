@@ -3,7 +3,8 @@ import { assignInvestigator, listCases, transition, type CaseAction } from "../s
 import type { Rpc } from "./reports";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ACTIONS: CaseAction[] = ["approve", "release", "close"];
+// Approval and release now happen only through the stewards re-wrapping shares (steward_approve), never by a service call.
+const ACTIONS: CaseAction[] = ["close"];
 
 export function casesRouter(db: Rpc): Router {
   const r = Router();

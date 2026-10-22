@@ -31,5 +31,4 @@ export const ROUTES = {
   admin: '/admin',
   quorum: '/quorum',
   audit: '/audit',
-  authRedirect: '/auth/redirect',
 } as const

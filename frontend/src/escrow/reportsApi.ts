@@ -1,13 +1,14 @@
 /**
- * The reporter's calls to the backend (backend/src/routes/reports.ts). Reports are sealed through
- * Tide's policy-governed encryption (tideCrypto.ts) before leaving the device; there is no local
- * fallback, because a report sealed with a key nobody holds could never be opened or matched.
+ * The reporter's calls to the backend (backend/src/routes/reports.ts). The report is sealed in this
+ * browser: a fresh key encrypts it, the key is split with Shamir across the stewards, and each share is
+ * wrapped to one steward's public key. The server only ever sees ciphertext and wrapped shares.
  */
-import { toHex, utf8, type Bytes } from './bytes'
-import { passphraseProof, sha256 } from './crypto'
+import { fromBase64, randomBytes, toHex, utf8, type Bytes } from './bytes'
+import { passphraseProof, seal, sha256 } from './crypto'
 import { canonicalSubject } from './subject'
 import { plainText } from './richDoc'
-import { tideEncrypt, tideSealAvailable } from './tideCrypto'
+import { wrapTo } from './keys'
+import { shareToBytes, split } from './shamir'
 import {
   InputError,
   LIFESPAN_OPTIONS,
@@ -48,19 +49,31 @@ export async function submitReport(input: ReportInput): Promise<Receipt> {
   if (input.passphrase.length < MIN_PASSPHRASE_LENGTH) throw new InputError(`Use a passphrase of at least ${MIN_PASSPHRASE_LENGTH} characters.`)
   if (input.attachments.length > MAX_ATTACHMENTS) throw new InputError(`Attach at most ${MAX_ATTACHMENTS} files.`)
   if (input.attachments.some((a) => a.data.length > MAX_ATTACHMENT_BYTES)) throw new InputError('Each file must be 5 MB or smaller.')
-  if (!tideSealAvailable()) {
-    throw new InputError('Encryption needs a Tide session and the release policy. Sign in with Tide and check VITE_TIDE_RELEASE_POLICY.')
-  }
 
   const url = endpoint('/reports')
+  const keysRes = await fetch(endpoint(`/keys/stewards?org=${ORG_ID}`))
+  if (!keysRes.ok) throw new InputError('The stewards are not set up yet, so reports cannot be sealed.')
+  const { threshold, stewards } = (await keysRes.json()) as { threshold: number; stewards: { id: string; publicKey: string }[] }
+
   const body = {
     incidentDate: input.incidentDate,
     content: input.content,
     attachments: input.attachments.map((a) => ({ name: a.name, type: a.type })),
   }
-  const ciphertext = await tideEncrypt(JSON.stringify({ body, files: input.attachments.map((f) => base64(f.data)) }))
+  const dataKey = randomBytes(32)
+  const sealedReport = await seal(dataKey, utf8(JSON.stringify({ body, files: input.attachments.map((f) => base64(f.data)) })), utf8('report'))
+  const ciphertext = new Uint8Array([...sealedReport.iv, ...sealedReport.ciphertext])
   const contactText = input.contact.trim()
-  const contact = contactText ? await tideEncrypt(contactText) : null
+  const sealedContact = contactText ? await seal(dataKey, utf8(contactText), utf8('contact')) : null
+  const contact = sealedContact ? new Uint8Array([...sealedContact.iv, ...sealedContact.ciphertext]) : null
+
+  const shares = await Promise.all(
+    split(dataKey, stewards.length, threshold).map(async (share, i) => ({
+      steward: stewards[i].id,
+      share: base64(await wrapTo(fromBase64(stewards[i].publicKey), shareToBytes(share), utf8(`share|${stewards[i].id}`))),
+    })),
+  )
+  dataKey.fill(0)
 
   const res = await post(url, 'POST', {
     org: ORG_ID,
@@ -69,6 +82,7 @@ export async function submitReport(input: ReportInput): Promise<Receipt> {
     contact: contact ? base64(contact) : undefined,
     withdrawHash: toHex(await sha256(await proofBytes(input.passphrase))),
     lifespanMonths: input.lifespanMonths,
+    shares,
   })
   if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? 'The server rejected the report.')
   const row = (await res.json()) as { reportId: string; expiresAt: string }

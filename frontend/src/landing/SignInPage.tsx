@@ -1,48 +1,28 @@
-import { Suspense, lazy, useRef, useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from '@/app/Link'
-import { EMAIL_HINT, checkMemberEmail, signInAs, type Member } from '@/app/membership'
+import { supabase } from '@/app/supabase'
 import { ROUTES, navigate } from '@/app/router'
-import { useTideConfigured } from '@/app/tideContext'
 import { BrandMark } from '@/components/BrandMark'
 import { useQuickExitKey } from './motion'
 import './landing.css'
 
-const TideSignIn = lazy(() => import('@/app/TideConnected').then((m) => ({ default: m.TideSignIn })))
-
-const CHOICES: { id: Member; title: string; detail: string }[] = [
-  { id: 'student', title: 'Student', detail: 'Any course, any campus' },
-  { id: 'staff', title: 'Staff', detail: 'Academic or professional' },
-]
-
-function initialChoice(): Member {
-  return new URLSearchParams(window.location.search).get('as') === 'staff' ? 'staff' : 'student'
-}
-
 export function SignInPage() {
   useQuickExitKey()
-  const tide = useTideConfigured()
-  const [member, setMember] = useState<Member>(initialChoice)
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
-  function choose(next: Member) {
-    setMember(next)
-    setError(null)
-  }
-
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
-    const problem = checkMemberEmail(member, email)
-    if (problem) {
-      setError(problem)
-      input.current?.focus()
-      return
-    }
-    // The address has done its job: only the group is kept.
-    setEmail('')
-    signInAs(member)
-    navigate(ROUTES.report)
+    setBusy(true)
+    setError(null)
+    const { error: failed } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    setBusy(false)
+    if (failed) return setError('That email and password do not match an account.')
+    setPassword('')
+    navigate(ROUTES.quorum)
   }
 
   return (
@@ -66,69 +46,33 @@ export function SignInPage() {
         </aside>
 
         <main className="si-main">
-
           <form className="si-form" onSubmit={submit} noValidate>
-            <h1>Sign in to file a report</h1>
+            <h1>Staff sign in</h1>
             <p className="lede">
-              Only current RMIT students and staff can file. Signing in proves you belong here; it never travels with your report.
+              For stewards, investigators and org admins. Reporters do not need an account: <Link href={ROUTES.report}>file a report</Link>.
             </p>
 
-            <div className="si-choice" role="group" aria-label="I am">
-              {CHOICES.map((c) => (
-                <button key={c.id} type="button" aria-pressed={member === c.id} onClick={() => choose(c.id)}>
-                  <b>{c.title}</b>
-                  <span>{c.detail}</span>
-                </button>
-              ))}
+            <div className="si-field">
+              <label htmlFor="staff-email">Email</label>
+              <input ref={input} id="staff-email" type="email" autoComplete="username" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="si-field">
+              <label htmlFor="staff-password">Password</label>
+              <input id="staff-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              {error && (
+                <span role="alert" className="si-error">
+                  {error}
+                </span>
+              )}
+            </div>
+            <div className="si-submit">
+              <button type="submit" className="lp-btn" disabled={busy || !email || !password}>
+                {busy ? 'Signing in…' : 'Sign in'} <span className="lp-dot" aria-hidden />
+              </button>
             </div>
 
-            {tide ? (
-              <div className="si-submit">
-                <Suspense fallback={<span className="si-hint">Connecting to Tide…</span>}>
-                  <TideSignIn member={member} />
-                </Suspense>
-              </div>
-            ) : (
-              <>
-                <div className="si-field">
-                  <label htmlFor="rmit-email">RMIT email</label>
-                  <input
-                    ref={input}
-                    id="rmit-email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="off"
-                    spellCheck={false}
-                    placeholder={EMAIL_HINT[member]}
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      setError(null)
-                    }}
-                    aria-invalid={error ? true : undefined}
-                    aria-describedby="email-note"
-                  />
-                  {error ? (
-                    <span id="email-note" role="alert" className="si-error">
-                      {error}
-                    </span>
-                  ) : (
-                    <span id="email-note" className="si-hint">
-                      Checked here, then discarded. Demo sign-in: TideCloak is not connected in this build.
-                    </span>
-                  )}
-                </div>
-                <div className="si-submit">
-                  <button type="submit" className="lp-btn">
-                    Continue as {member} <span className="lp-dot" aria-hidden />
-                  </button>
-                </div>
-              </>
-            )}
-
             <ul className="si-facts">
-              <li>Your report carries no name, email or student number.</li>
-              <li>Nothing is saved on this device. Closing the tab signs you out.</li>
+              <li>Your role is checked by the server on every request, not by this page.</li>
               <li>Press Esc at any moment to leave for google.com.</li>
             </ul>
           </form>

@@ -8,13 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "tide:init": "PATH=\"$(brew --prefix gnu-sed)/libexec/gnubin:$PATH\" bash ../.tide-pack/templates/shared/bootstrap-tidecloak.sh",
-    "tide:doctor": "bash ../.tide-pack/templates/shared/tide-doctor.sh --app . --url http://localhost:5173"
+    "test": "vitest run"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/vite": "^4.3.3",
-    "@tidecloak/react": "0.14.33",
     "@tiptap/pm": "^3.32.0",
     "@tiptap/react": "^3.32.0",
     "@tiptap/starter-kit": "^3.32.0",

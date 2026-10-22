@@ -1,10 +1,8 @@
-[![Built with TideCloak](https://tide.org/badges/built-with-tidecloak.svg)](https://tide.org/tidecloak?utm_source=github&utm_medium=readme&utm_campaign=unlocked)
-
 # SafeThreshold
 
 SafeThreshold is an anonymous escrow platform for reporting misconduct. A report stays sealed until at least two independent people report the same subject. No school, IT admin or AI can open a single report on its own.
 
-Built with [TideCloak](https://tide.org/tidecloak?utm_source=github&utm_medium=readme&utm_campaign=unlocked). Team *Me & the Bums*, RMIT Hackathon 2026, Challenge 2.
+Team *Me & the Bums*, RMIT Hackathon 2026, Challenge 2.
 
 ## 1. Vision & originality
 
@@ -32,9 +30,9 @@ SafeThreshold removes that control. No server, admin or AI ever holds a decrypti
 - Repeat offenders are found earlier, before they harm more people.
 - It can extend to student-to-student, staff-to-leadership, and other hierarchical organisations (hospitals, NGOs, companies).
 
-## 4. Why TideCloak matters
+## 4. Why steward-held shares matter
 
-With a normal login plus backend, the admin is the trust hole. TideCloak splits the decryption key across Tide's node network, and the key is never assembled on any single machine. Decryption is only authorised through a quorum of stewards, and the network verifies their signatures itself.
+With a normal login plus backend, the admin is the trust hole. Here each report is encrypted in the reporter's browser with its own key, and that key is split with Shamir sharing across the stewards (for example 2 of 3). Each share is wrapped to one steward's public key, so the server stores only ciphertext and wrapped shares. A case opens only when enough stewards re-wrap their shares to the assigned investigator, on their own devices.
 
 ## 5. How it works
 
@@ -88,45 +86,22 @@ frontend/   React + TypeScript + Vite app: the three portals and the escrow engi
 
 ## Setup
 
-Requirements: Node.js 22+. Docker and a TideCloak realm only for real Tide sign-in.
+Requirements: Node.js 22+ and a Supabase project (run `backend/src/database/migration/001` to `008` in the SQL editor).
+
+1. Copy `backend/.env.example` to `backend/.env.local` and `frontend/.env.example` to `frontend/.env.local` and fill them in (never commit them).
+2. In Supabase Auth, create the staff accounts (email + password) or invite them.
+3. Seed one org and its first org admin (see `006_admin.sql`), then run both servers from the repo root:
 
 ```bash
-cd frontend
-npm install
-npm run dev      # http://localhost:5173
-npm test         # escrow engine tests (Vitest)
-npm run build
-npm run lint
+npm install && npm run dev   # API :3000, web http://localhost:5173
 ```
 
-### The demo
-
-The app runs the whole escrow in the browser tab, with real cryptography (AES-256-GCM, a keyed HMAC-SHA-256 blinded token, PBKDF2 for the withdrawal passphrase, ECDSA P-256 steward signatures, Shamir sharing of each report key across five nodes). The five Tide nodes are simulated in the tab; reloading starts an empty escrow.
-
-1. **Report misconduct**: click *Demo: first student*, continue through the three steps, *Generate* a passphrase, *Seal report*.
-2. **Admin IT view**: only ciphertext and hashed tokens. *Guess names from the staff list* finds 0 matches; *Attempt force decrypt / override* is refused by all five nodes.
-3. Back in **Report misconduct**: *File another report*, *Demo: second student*, seal. The case reaches the threshold (2/2).
-4. **Steward quorum**: one steward approves, one holds; nothing opens. A second approval releases the key and both reports open side by side for the investigator.
-5. **Public audit log**: every action, no content. The sidebar can fast-forward the clock 12 months or reset the demo.
+`npm test`, `npm run build` and `npm run lint` run in `frontend/`. The test flows are in [docs/testing.md](docs/testing.md).
 
 Press **Esc** (or *Quick exit*) on the reporter portal to leave for google.com immediately.
 
-### Connecting TideCloak
-
-The frontend already carries the Tide wiring: `@tidecloak/react` with DPoP (`ES256`, strict), `public/tide_dpop_auth.html` (byte-exact, verified), the `/tide_dpop/*` relay with its CSP headers (in `vite.config.ts`), silent SSO and the `/auth/redirect` callback. When `frontend/public/tidecloak.json` exists, the app loads the Tide SDK and shows *Sign in with Tide*; without it, it runs as a simulation and says so.
-
-To bootstrap a local realm (needs Docker, `curl`, `jq`, and on macOS GNU sed: `brew install gnu-sed`; `npm run tide:init` puts it first on `PATH`):
-
-```bash
-mkdir -p .tide-pack && curl -fsSL "https://mcp.tide.org/pack/templates.tgz" | tar -xz -C .tide-pack
-cd frontend
-npm run tide:init   # reads frontend/.env: TIDE_LICENSE_EMAIL, TIDE_TERMS_ACCEPTED, KC_BOOTSTRAP_ADMIN_PASSWORD, REALM_NAME…
-```
-
-Only run it after reading and accepting Tide's Terms & Conditions (https://tide.org/legal).
-
 ### Not built yet
 
-- The backend: the in-tab `OperatorServer` stands in for it. A real one must verify the Tide JWT and DPoP proof on every route; UI role checks are hints only.
-- Production blinding: the matching token should come from a threshold OPRF across the Tide nodes, so no node sees the name or holds the whole key. The simulation holds that key in one place.
-- Shares encrypted to the investigator's key, and investigator access through a Tide decryption policy per case (Tide's `RelationshipAttestation:1`, with the steward quorum as the realm's admin threshold).
+- Steward rotation: shares of existing reports are wrapped to the stewards of the day, so a new steward cannot read them. See [docs/key-custody.md](docs/key-custody.md).
+- Production blinding: the matching token is keyed with a server-held pepper; a threshold OPRF would remove that single secret.
+- Proof-of-human for reporters that preserves anonymity.

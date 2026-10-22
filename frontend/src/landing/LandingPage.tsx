@@ -9,8 +9,8 @@ import './landing.css'
 
 const IMG = '/landing'
 
-const SIGN_IN_STUDENT = `${ROUTES.signIn}?as=student`
-const SIGN_IN_STAFF = `${ROUTES.signIn}?as=staff`
+const SIGN_IN_STUDENT = `${ROUTES.report}`
+const SIGN_IN_STAFF = `${ROUTES.report}`
 
 export function LandingPage() {
   const root = useRef<HTMLDivElement>(null)
@@ -37,7 +37,7 @@ export function LandingPage() {
             independent report names the same person.
           </p>
           <div className="lp-hero-actions">
-            <Link href={ROUTES.signIn} className="lp-btn">
+            <Link href={ROUTES.report} className="lp-btn">
               File a sealed report <span className="lp-dot" aria-hidden />
             </Link>
             <a href="#how-it-works" className="lp-textlink">
@@ -467,13 +467,13 @@ function Footer() {
             <ul>
               <li><a href="#how-it-works">How it works</a></li>
               <li><a href="#tidecloak">About TideCloak</a></li>
-              <li><Link href={ROUTES.signIn}>File a report</Link></li>
+              <li><Link href={ROUTES.report}>File a report</Link></li>
             </ul>
           </div>
           <div>
             <h3>Demo views</h3>
             <ul>
-              <li><Link href={ROUTES.signIn}>Reporter</Link></li>
+              <li><Link href={ROUTES.report}>Reporter</Link></li>
               <li><Link href={ROUTES.admin}>IT admin</Link></li>
               <li><Link href={ROUTES.quorum}>Steward quorum</Link></li>
               <li><Link href={ROUTES.audit}>Public audit log</Link></li>
@@ -508,7 +508,7 @@ function Footer() {
 
       <div className="lp-footer-last">
         <span>© 2026 SafeThreshold prototype</span>
-        <Link href={ROUTES.signIn} className="lp-btn lp-btn--accent lp-nav-cta">
+        <Link href={ROUTES.report} className="lp-btn lp-btn--accent lp-nav-cta">
           File a report
         </Link>
       </div>

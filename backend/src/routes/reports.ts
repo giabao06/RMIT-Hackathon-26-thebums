@@ -22,7 +22,7 @@ export function reportsRouter(db: Rpc, pepper: Buffer): Router {
     HEX32.test(str(proof)) ? bytea(createHash("sha256").update(Buffer.from(str(proof), "hex")).digest()) : null;
 
   r.post("/", async (req, res) => {
-    const { org, subject, ciphertext, contact, withdrawHash, lifespanMonths } = req.body ?? {};
+    const { org, subject, ciphertext, contact, withdrawHash, lifespanMonths, shares } = req.body ?? {};
     const months = lifespanMonths === undefined ? null : Number(lifespanMonths);
     if (
       !UUID.test(str(org)) ||
@@ -35,6 +35,10 @@ export function reportsRouter(db: Rpc, pepper: Buffer): Router {
     }
     const data = Buffer.from(str(ciphertext), "base64");
     if (data.length === 0 || data.length > MAX_CIPHERTEXT) return res.status(400).json({ error: "invalid report" });
+
+    // One wrapped share per steward; the server cannot read them, it only checks their shape.
+    const wrapped = Array.isArray(shares) && shares.length >= 3 && shares.length <= 5 ? shares.map((x: { steward?: unknown; share?: unknown }) => (UUID.test(str(x?.steward)) && B64.test(str(x?.share)) && str(x?.share).length <= 1024 ? { steward: str(x.steward), share: Buffer.from(str(x.share), "base64").toString("hex") } : null)) : null;
+    if (!wrapped || wrapped.includes(null)) return res.status(400).json({ error: "invalid report" });
 
     let canonical: string;
     try {
@@ -55,6 +59,7 @@ export function reportsRouter(db: Rpc, pepper: Buffer): Router {
       p_withdraw_hash: `\\x${str(withdrawHash)}`,
       p_months: months,
       p_contact: contact === undefined ? null : bytea(Buffer.from(str(contact), "base64")),
+      p_shares: wrapped,
     });
     const row = (rows as { report_id: string; expires_at: string }[] | null)?.[0];
     if (error || !row) return res.status(400).json({ error: "could not store report" });

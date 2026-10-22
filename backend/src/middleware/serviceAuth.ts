@@ -3,7 +3,7 @@ import type { RequestHandler } from "express";
 import type { Rpc } from "../routes/reports";
 import { logRefusal } from "../services/audit";
 
-// Interim server-side gate until TideCloak role checks (steward/investigator) replace it.
+// Service-to-service gate for /cases (list, assign, close); people use Supabase Auth roles instead.
 export function serviceAuth(db: Rpc, secret = process.env.SERVICE_API_KEY ?? ""): RequestHandler {
   if (secret.length < 32) throw new Error("SERVICE_API_KEY must be at least 32 characters");
   const want = Buffer.from(secret);

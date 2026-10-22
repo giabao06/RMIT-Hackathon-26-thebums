@@ -1,10 +1,12 @@
 /**
  * Org admin against the real API (/admin). Every change is a proposal other admins must approve
  * (admin quorum, separate from the steward quorum). The server returns people, settings and case
- * status only: there is no ciphertext, token or decrypt path here. Loaded only when Tide and the API are configured.
+ * status only: there is no ciphertext, token or decrypt path here. Loaded only when the API is configured.
  */
 import { useEffect, useState } from 'react'
-import { useTideCloak } from '@tidecloak/react'
+import { Link } from '@/app/Link'
+import { useAuth } from '@/app/auth'
+import { ROUTES } from '@/app/router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatDateTime } from '@/lib/format'
@@ -24,15 +26,15 @@ interface Overview {
 const BODIES = ['union', 'ngo', 'oversight']
 
 export function AdminLive({ apiUrl }: { apiUrl: string }) {
-  const { isInitializing, authenticated, login, hasRealmRole, secureFetch } = useTideCloak()
+  const { loading, session, secureFetch } = useAuth()
   const [data, setData] = useState<Overview | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
-  const [form, setForm] = useState({ tide_user_id: '', name: '', body: 'union', kind: 'steward' })
+  const [form, setForm] = useState({ email: '', name: '', body: 'union', kind: 'steward' })
   const [settings, setSettings] = useState({ retention_months: 12, quorum_m: 2, quorum_n: 3 })
-  const isAdmin = authenticated && hasRealmRole('org-admin')
+  const isAdmin = !!session
 
   useEffect(() => {
     if (!isAdmin) return
@@ -73,21 +75,20 @@ export function AdminLive({ apiUrl }: { apiUrl: string }) {
   const vote = (id: string, action: 'approve' | 'reject') =>
     post(`/changes/${id}/${action}`, {}, (r) => `Change ${String(r.status)}.`)
 
-  if (isInitializing) return <p className="text-[14px] text-slate">Connecting to Tide…</p>
-  if (!authenticated) {
+  if (loading) return <p className="text-[14px] text-slate">Loading…</p>
+  if (!session) {
     return (
       <div className="flex flex-col items-start gap-3">
         <h1 className="text-[22px] font-semibold">Organisation admin</h1>
         <p className="text-[14px] text-slate">Sign in with your admin account to manage stewards, investigators and settings.</p>
-        <Button onClick={() => void login()}>Sign in with Tide</Button>
+        <Link href={ROUTES.signIn} className="text-[14px] font-medium underline underline-offset-2">Staff sign in</Link>
       </div>
     )
   }
-  if (!isAdmin) return <p role="alert" className="text-[14px] text-danger-ink">This account has no org-admin role. Ask the realm admin to grant it.</p>
 
   const addPerson = () => {
-    if (form.kind === 'steward') void propose('add_steward', { tide_user_id: form.tide_user_id, display_name: form.name, body: form.body })
-    else void propose('add_investigator', { tide_user_id: form.tide_user_id, name: form.name })
+    if (form.kind === 'steward') void propose('add_steward', { email: form.email, display_name: form.name, body: form.body })
+    else void propose('add_investigator', { email: form.email, name: form.name })
   }
   const label = (c: Change) => {
     const p = c.payload
@@ -95,9 +96,9 @@ export function AdminLive({ apiUrl }: { apiUrl: string }) {
     return `${c.kind.replace('_', ' ')}${who ? `: ${who}` : ''}${c.kind === 'set_settings' ? `: ${p.retention_months} months, ${p.quorum_m} of ${p.quorum_n}` : ''}`
   }
   const rotate = (s: Person) => {
-    const tide_user_id = window.prompt(`Tide user id of the replacement for ${s.display_name}`)
-    const display_name = tide_user_id && window.prompt('Display name of the replacement')
-    if (tide_user_id && display_name) void propose('rotate_steward', { id: s.id, tide_user_id, display_name })
+    const email = window.prompt(`Email of the replacement for ${s.display_name}`)
+    const display_name = email && window.prompt('Display name of the replacement')
+    if (email && display_name) void propose('rotate_steward', { id: s.id, email, display_name })
   }
 
   const person = (p: Person, kind: 'steward' | 'investigator') => (
@@ -160,7 +161,7 @@ export function AdminLive({ apiUrl }: { apiUrl: string }) {
               <option value="steward">Steward</option>
               <option value="investigator">Investigator</option>
             </select>
-            <Input aria-label="Tide user id" placeholder="Tide user id" required value={form.tide_user_id} onChange={(e) => setForm({ ...form, tide_user_id: e.target.value })} />
+            <Input aria-label="Email" type="email" placeholder="Email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <Input aria-label="Name" placeholder="Name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <select aria-label="Body" disabled={form.kind !== 'steward'} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} className="h-9 rounded-[10px] border border-input bg-white px-2 text-[14px]">
               {BODIES.map((b) => <option key={b}>{b}</option>)}
@@ -181,12 +182,12 @@ export function AdminLive({ apiUrl }: { apiUrl: string }) {
 
           <div>
             <h2 className="text-[16px] font-semibold">Cases</h2>
-            <p className="mt-1 text-[13px] text-slate">Status only. Assignment is for cases the stewards have released.</p>
+            <p className="mt-1 text-[13px] text-slate">Status only. Choose the investigator for a case before the stewards approve it.</p>
             <ul className="mt-2 grid gap-2">
               {data.cases.map((c) => (
                 <li key={c.id} className="flex flex-col gap-2 rounded-[10px] border border-rule bg-white px-4 py-3 text-[14px] sm:flex-row sm:items-center sm:justify-between">
                   <span><span className="font-mono">{c.id}</span> <span className="text-slate">· {c.status}{c.assigned && ' · assigned'}</span></span>
-                  {c.status === 'released' && !c.assigned && (
+                  {c.status === 'eligible' && !c.assigned && (
                     <select aria-label="Assign investigator" defaultValue="" disabled={busy} className="h-9 rounded-[10px] border border-input bg-white px-2 text-[14px]"
                       onChange={(e) => e.target.value && void post(`/cases/${c.id}/assign`, { investigator: e.target.value }, () => 'Investigator assigned.')}>
                       <option value="">Assign investigator…</option>

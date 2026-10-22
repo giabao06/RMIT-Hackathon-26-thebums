@@ -2,9 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { Database, FilePlus2, KeyRound, Menu, ScrollText } from 'lucide-react'
 import { cn } from 'cn'
 import { Link } from '@/app/Link'
-import { signOut, useMember } from '@/app/membership'
-import { ROUTES, navigate } from '@/app/router'
-import { TideAccount } from '@/app/TideAccount'
+import { Account } from '@/app/Account'
+import { ROUTES } from '@/app/router'
 import { BrandMark } from '@/components/BrandMark'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -35,9 +34,8 @@ export function AppShell({ path, children }: { path: string; children: ReactNode
           </Button>
           <span className="truncate text-[15px] font-semibold lg:hidden">{current?.label ?? 'SafeThreshold'}</span>
           <div className="ml-auto flex items-center gap-3">
-            <MemberBadge />
             <span className="hidden sm:inline">
-              <TideAccount />
+              <Account />
             </span>
             {onReport && <QuickExit escListens />}
           </div>
@@ -55,7 +53,7 @@ export function AppShell({ path, children }: { path: string; children: ReactNode
           <div className="flex h-full flex-col" onClick={(e) => (e.target as HTMLElement).closest('a') && setMenuOpen(false)}>
             <SidebarContent path={path} />
             <div className="pt-3 sm:hidden">
-              <TideAccount />
+              <Account />
             </div>
           </div>
         </DialogContent>
@@ -98,23 +96,3 @@ function SidebarContent({ path }: { path: string }) {
   )
 }
 
-/** The RMIT group the reporter signed in as. The address itself was never kept. */
-function MemberBadge() {
-  const member = useMember()
-  if (!member) return null
-  return (
-    <span className="flex items-center gap-2 text-[13px] text-chrome-muted">
-      <span className="hidden sm:inline">Signed in as RMIT {member}</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => {
-          signOut()
-          navigate(ROUTES.home)
-        }}
-      >
-        Sign out
-      </Button>
-    </span>
-  )
-}
