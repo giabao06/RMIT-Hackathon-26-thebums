@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { Suspense, lazy, useMemo, useState } from 'react'
+import { useTideConfigured } from '@/app/tideContext'
 import { Download, ShieldAlert } from 'lucide-react'
 import { cn } from 'cn'
 import { Link } from '@/app/Link'
@@ -13,7 +14,23 @@ import { DenyModal } from './DenyModal'
 
 type Tab = 'reports' | 'stewards' | 'requests'
 
+const AdminLive = lazy(() => import('./AdminLive').then((m) => ({ default: m.AdminLive })))
+const API_URL = import.meta.env.VITE_API_URL as string | undefined
+
+/** With a Tide realm and the API, org admins use the real backend; otherwise the attack demo. */
 export function AdminPortal() {
+  const tide = useTideConfigured()
+  if (tide && API_URL) {
+    return (
+      <Suspense fallback={<p className="text-[14px] text-slate">Connecting to Tide…</p>}>
+        <AdminLive apiUrl={API_URL} />
+      </Suspense>
+    )
+  }
+  return <SimulatedAdmin />
+}
+
+function SimulatedAdmin() {
   const { world, snapshot } = useWorld()
   const [tab, setTab] = useState<Tab>('reports')
   const [busy, setBusy] = useState<string | null>(null)
