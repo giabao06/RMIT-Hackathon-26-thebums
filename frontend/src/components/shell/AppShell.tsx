@@ -1,11 +1,10 @@
 import { useState, type ReactNode } from 'react'
-import { Clock, Database, FilePlus2, KeyRound, Menu, RotateCcw, ScrollText } from 'lucide-react'
+import { Database, FilePlus2, KeyRound, Menu, ScrollText } from 'lucide-react'
 import { cn } from 'cn'
 import { Link } from '@/app/Link'
 import { signOut, useMember } from '@/app/membership'
 import { ROUTES, navigate } from '@/app/router'
 import { TideAccount } from '@/app/TideAccount'
-import { useWorld } from '@/app/worldContext'
 import { BrandMark } from '@/components/BrandMark'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -66,9 +65,6 @@ export function AppShell({ path, children }: { path: string; children: ReactNode
 }
 
 function SidebarContent({ path }: { path: string }) {
-  const { snapshot, world, reset } = useWorld()
-  const pending = snapshot.cases.filter((c) => c.eligible && !snapshot.opened[c.caseId]).length
-
   return (
     <>
       <Link href={ROUTES.home} className="flex items-center gap-2.5 rounded-lg px-2 pt-1 pb-5" aria-label="SafeThreshold home">
@@ -94,39 +90,10 @@ function SidebarContent({ path }: { path: string }) {
             >
               <Icon className="size-4" strokeWidth={1.75} aria-hidden />
               <span className="flex-1 truncate">{label}</span>
-              {href === ROUTES.quorum && pending > 0 && (
-                <span className="tabular text-[12px] font-medium text-ink" aria-label={`${pending} cases awaiting quorum`}>
-                  {pending}
-                </span>
-              )}
             </Link>
           )
         })}
       </nav>
-
-      <div className="mt-auto flex flex-col gap-0.5 pt-6">
-        <div className="px-2.5 pb-1.5 text-[12px] text-chrome-muted">Simulation</div>
-        <button
-          type="button"
-          onClick={() => world.advanceMonths(12)}
-          className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#475569] transition-colors hover:bg-[#e4e9f0] hover:text-ink"
-        >
-          <Clock className="size-4" strokeWidth={1.75} aria-hidden />
-          Fast-forward 12 months
-        </button>
-        <button
-          type="button"
-          onClick={() => void reset()}
-          className="flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-[#475569] transition-colors hover:bg-[#e4e9f0] hover:text-ink"
-        >
-          <RotateCcw className="size-4" strokeWidth={1.75} aria-hidden />
-          Reset the demo
-        </button>
-        <p className="px-2.5 pt-3 text-[12px] leading-snug text-chrome-muted">
-          Runs in this tab with real AES-256-GCM, ECDSA and Shamir sharing. The five Tide nodes are simulated.
-          {snapshot.monthsAdvanced > 0 && ` Clock: +${snapshot.monthsAdvanced} months.`}
-        </p>
-      </div>
     </>
   )
 }

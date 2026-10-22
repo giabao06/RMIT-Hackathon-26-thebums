@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Download, FileText } from 'lucide-react'
 import { RichViewer } from '@/components/rich/RichViewer'
-import { formatBytes, type OpenedReport } from '@/escrow/simulation'
+import { formatBytes, type OpenedReport } from '@/escrow/types'
 import { formatDateTime, formatIsoDate } from '@/lib/format'
 
 export function ReportColumn({ report, label }: { report: OpenedReport; label: string }) {

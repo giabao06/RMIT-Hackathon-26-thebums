@@ -1,6 +1,6 @@
 import { fromBase64, type Bytes } from './bytes'
 import { tideDecrypt, tideSealAvailable } from './tideCrypto'
-import type { OpenedReport } from './simulation'
+import type { OpenedReport } from './types'
 
 export class PolicyPending extends Error {
   constructor(reportId: string) {
@@ -30,6 +30,5 @@ export async function decryptReport(sealed: { id: string; sealedAt: string; ciph
       data: fromBase64(body.files[i] ?? '') as Bytes,
     })),
     contact: sealed.contact ? await tideDecrypt(fromBase64(sealed.contact)) : null,
-    combinedFrom: [],
   }
 }

@@ -4,7 +4,7 @@ import { cn } from 'cn'
 import { RichEditor } from '@/components/rich/RichEditor'
 import { Field, SettingsRow } from '@/components/SettingsRow'
 import { Input } from '@/components/ui/input'
-import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS, formatBytes } from '@/escrow/simulation'
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS, formatBytes } from '@/escrow/types'
 import type { Draft } from './draft'
 import { LiveCipher } from './LiveCipher'
 

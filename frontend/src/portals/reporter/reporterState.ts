@@ -1,9 +1,8 @@
 import { createContext, useContext } from 'react'
-import type { Receipt } from '@/escrow/simulation'
+import type { Receipt } from '@/escrow/types'
 import type { Draft } from './draft'
 
 export interface ReporterState {
-  session: string
   step: number
   draft: Draft
   editorKey: number

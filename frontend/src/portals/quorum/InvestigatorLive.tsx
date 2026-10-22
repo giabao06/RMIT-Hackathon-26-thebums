@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useTideCloak } from '@tidecloak/react'
 import { Button } from '@/components/ui/button'
 import { decryptReport } from '@/escrow/tideDecrypt'
-import type { OpenedReport } from '@/escrow/simulation'
+import type { OpenedReport } from '@/escrow/types'
 import { formatDateTime } from '@/lib/format'
 import { InvestigatorWorkspace } from './InvestigatorWorkspace'
 

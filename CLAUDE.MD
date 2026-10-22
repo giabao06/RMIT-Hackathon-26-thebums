@@ -6,7 +6,7 @@ SafeThreshold: anonymous escrow platform for misconduct reports (RMIT Hackathon 
 
 ## Layout
 
-- `frontend/`: React + TypeScript + Vite + Tailwind v4 + shadcn/ui (`npm run dev | build | lint | test`). `src/escrow/` is the escrow engine; `src/portals/` the three portals and the audit log.
+- `frontend/`: React + TypeScript + Vite + Tailwind v4 + shadcn/ui (`npm run dev | build | lint | test`). `src/escrow/` holds the Tide encrypt/decrypt bridge and the reporter API client; `src/portals/` the three portals and the audit log.
 - `backend/`: server code; `database/database.ts` and `database/migration`. No run script yet.
 - `.env` / `.env.example`: Supabase variables. Never commit `.env`.
 
@@ -36,7 +36,6 @@ SafeThreshold: anonymous escrow platform for misconduct reports (RMIT Hackathon 
 - Custom Forseti contracts are written and compile-checked here but deployed by the Tide team. Never upload one.
 - IGA governs admin changes (roles, stewards). Its quorum is separate from the steward release quorum.
 - With IGA on, a `2xx` means accepted, not applied. Verify state after every admin mutation.
-- The frontend `escrow/` simulation is a stand-in for the node network. Don't ship it as the production key path.
 - Realm setup order is licence → IGA → E2EE. Licence email, terms agreement and hosting choice (Docker or Skycloak) are the team's decisions.
 
 ## Conventions

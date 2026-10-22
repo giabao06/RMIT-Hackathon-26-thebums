@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Lock } from 'lucide-react'
-import { NODE_COUNT, SHARE_THRESHOLD, STEWARD_QUORUM, type OpenedReport } from '@/escrow/simulation'
+import { type OpenedReport } from '@/escrow/types'
 import { daysBetweenIso, formatDuration, formatIsoDate, plural } from '@/lib/format'
 import { ReportColumn } from './ReportColumn'
 
@@ -37,8 +37,7 @@ function Locked() {
       </span>
       <p className="text-[16px] font-medium">The escrow box is sealed.</p>
       <p className="max-w-[52ch] text-[14px] text-vault-muted">
-        It opens here, for the investigator, once {STEWARD_QUORUM} of 3 stewards approve. Until then the key exists only as{' '}
-        {NODE_COUNT} shares on {NODE_COUNT} separate nodes.
+        It opens here, for the investigator, once the steward quorum approves. Until then no one holds a key that can open it.
       </p>
     </div>
   )
@@ -51,7 +50,7 @@ function Opened({ reports }: { reports: OpenedReport[] }) {
 
   return (
     <div className="bg-panel p-3 sm:p-4">
-      <div className="grid gap-x-8 gap-y-3 rounded-[12px] bg-white px-5 py-4 text-[14px] sm:grid-cols-3">
+      <div className="grid gap-x-8 gap-y-3 rounded-[12px] bg-white px-5 py-4 text-[14px] sm:grid-cols-2">
         <div>
           <div className="text-[13px] text-slate">Incidents</div>
           <div className="tabular mt-0.5 font-medium">
@@ -67,11 +66,6 @@ function Opened({ reports }: { reports: OpenedReport[] }) {
           <div className="text-[13px] text-slate">Reports sealed</div>
           <div className="tabular mt-0.5 font-medium">{sealedGap === null ? '—' : `${formatDuration(sealedGap)} apart`}</div>
           <div className="text-[13px] text-slate">by two independent, anonymous reporters</div>
-        </div>
-        <div>
-          <div className="text-[13px] text-slate">Key rebuilt from</div>
-          <div className="tabular mt-0.5 font-medium">Nodes {first?.combinedFrom.join(', ')}</div>
-          <div className="text-[13px] text-slate">any {SHARE_THRESHOLD} of {NODE_COUNT} shares</div>
         </div>
       </div>
 

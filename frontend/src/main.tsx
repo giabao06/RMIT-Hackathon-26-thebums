@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import { WorldProvider } from './app/WorldProvider'
 import { TideConfiguredContext, loadTideConfig } from './app/tideContext'
 import './index.css'
 
@@ -9,17 +8,22 @@ const root = createRoot(document.getElementById('root')!)
 
 async function start() {
   const config = await loadTideConfig()
-  const app = (
-    <WorldProvider>
-      <App />
-    </WorldProvider>
-  )
-  // The Tide SDK is only downloaded when a realm is configured.
-  const TideProvider = config ? (await import('./app/TideConnected')).TideProvider : null
+  if (!config) {
+    // Production build: no simulation to fall back to, so a missing realm is a hard stop.
+    root.render(
+      <p role="alert" className="p-6 text-sm">
+        SafeThreshold cannot start: no TideCloak realm is configured (public/tidecloak.json is missing).
+      </p>,
+    )
+    return
+  }
+  const { TideProvider } = await import('./app/TideConnected')
   root.render(
     <StrictMode>
-      <TideConfiguredContext.Provider value={config !== null}>
-        {TideProvider && config ? <TideProvider config={config}>{app}</TideProvider> : app}
+      <TideConfiguredContext.Provider value>
+        <TideProvider config={config}>
+          <App />
+        </TideProvider>
       </TideConfiguredContext.Provider>
     </StrictMode>,
   )

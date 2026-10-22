@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { cn } from 'cn'
-import { useWorld } from '@/app/worldContext'
-import type { AuditEntry } from '@/escrow/simulation'
+import type { AuditEntry } from '@/escrow/types'
 import { formatDateTime } from '@/lib/format'
 
 const API_URL = import.meta.env.VITE_API_URL as string | undefined
@@ -47,12 +46,7 @@ const toEntry = (e: ApiEntry): AuditEntry => ({
 
 /** The public log: every action that changed something, and no report content, names or tokens. */
 export function AuditLog() {
-  return API_URL ? <LiveAuditLog apiUrl={API_URL} /> : <SimulatedAuditLog />
-}
-
-function SimulatedAuditLog() {
-  const { snapshot } = useWorld()
-  return <AuditView entries={[...snapshot.audit].reverse()} />
+  return API_URL ? <LiveAuditLog apiUrl={API_URL} /> : <p role="alert" className="text-[14px] text-danger-ink">VITE_API_URL is not set, so the audit log has no backend.</p>
 }
 
 function LiveAuditLog({ apiUrl }: { apiUrl: string }) {

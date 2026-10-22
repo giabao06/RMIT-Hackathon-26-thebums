@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Lock } from 'lucide-react'
-import { useWorld } from '@/app/worldContext'
 import { Button } from '@/components/ui/button'
 import { plainText } from '@/escrow/richDoc'
-import { SAMPLE_REPORTS } from '@/escrow/samples'
-import { MIN_PASSPHRASE_LENGTH } from '@/escrow/simulation'
+import { submitReport } from '@/escrow/reportsApi'
+import { MIN_PASSPHRASE_LENGTH } from '@/escrow/types'
 import { canonicalSubject } from '@/escrow/subject'
-import { draftFromSample, emptyDraft, type Draft } from './draft'
+import { emptyDraft, type Draft } from './draft'
 import { SealedVault } from './SealedVault'
 import { StepEscrow } from './StepEscrow'
 import { StepIncident } from './StepIncident'
@@ -42,21 +41,16 @@ function checkStep(step: number, draft: Draft, today: string): string | null {
 }
 
 export function ReporterPortal() {
-  const { world, snapshot } = useWorld()
   const { state, setState } = useReporterState()
-  const { session, step, draft, editorKey, sealed } = state
+  const { step, draft, editorKey, sealed } = state
   const [error, setError] = useState<string | null>(null)
   const [sealing, setSealing] = useState(false)
   const setStep = (next: number) => setState((s) => ({ ...s, step: next }))
-  const today = isoToday(snapshot.now)
+  const [now] = useState(() => Date.now())
+  const today = isoToday(now)
 
   const update = (patch: Partial<Draft>) => {
     setState((s) => ({ ...s, draft: { ...s.draft, ...patch } }))
-    setError(null)
-  }
-
-  function fillSample(i: 0 | 1) {
-    setState((s) => ({ ...s, draft: draftFromSample(SAMPLE_REPORTS[i]), editorKey: s.editorKey + 1, step: 0 }))
     setError(null)
   }
 
@@ -79,7 +73,7 @@ export function ReporterPortal() {
           data: new Uint8Array(await file.arrayBuffer()),
         })),
       )
-      const receipt = await world.submitReport(session, {
+      const receipt = await submitReport({
         subject: draft.subject,
         incidentDate: draft.incidentDate,
         content: draft.content,
@@ -105,7 +99,6 @@ export function ReporterPortal() {
 
   function startOver() {
     setState((s) => ({
-      session: world.newReporterSession(), // a new, independent reporter
       step: 0,
       draft: emptyDraft(),
       editorKey: s.editorKey + 1,
@@ -134,15 +127,6 @@ export function ReporterPortal() {
             same person. Press Esc at any time to leave this page instantly.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1 text-[13px] text-slate">
-          <span className="mr-1">Demo:</span>
-          <button type="button" onClick={() => fillSample(0)} className="rounded-md px-2 py-1 font-medium text-ink hover:bg-panel">
-            first student
-          </button>
-          <button type="button" onClick={() => fillSample(1)} className="rounded-md px-2 py-1 font-medium text-ink hover:bg-panel">
-            second student
-          </button>
-        </div>
       </div>
 
       <div className="mt-6">
@@ -153,7 +137,7 @@ export function ReporterPortal() {
         <div className="anim-fade-up">
           {step === 0 && <StepTarget draft={draft} update={update} />}
           {step === 1 && <StepIncident draft={draft} update={update} editorKey={editorKey} today={today} />}
-          {step === 2 && <StepEscrow draft={draft} update={update} now={snapshot.now} />}
+          {step === 2 && <StepEscrow draft={draft} update={update} now={now} />}
         </div>
       </div>
 

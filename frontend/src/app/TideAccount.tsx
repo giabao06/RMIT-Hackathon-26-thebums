@@ -9,7 +9,7 @@ export function TideAccount() {
   if (!useTideConfigured()) {
     return (
       <span className="text-[13px] text-chrome-muted" title="No public/tidecloak.json found. Run the realm bootstrap to connect TideCloak.">
-        Tide realm not connected · simulation
+        Tide realm not connected
       </span>
     )
   }

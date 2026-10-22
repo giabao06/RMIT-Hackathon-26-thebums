@@ -4,7 +4,7 @@ import { cn } from 'cn'
 import { Field, SettingsRow } from '@/components/SettingsRow'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { LIFESPAN_OPTIONS, MIN_PASSPHRASE_LENGTH, NODE_COUNT, SHARE_THRESHOLD } from '@/escrow/simulation'
+import { LIFESPAN_OPTIONS, MIN_PASSPHRASE_LENGTH } from '@/escrow/types'
 import { formatDate } from '@/lib/format'
 import { generatePassphrase, type Draft } from './draft'
 
@@ -21,9 +21,9 @@ export function StepEscrow({ draft, update, now }: { draft: Draft; update: (patc
       aside={
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[14px]">
           <dt className="text-slate">Encryption</dt>
-          <dd>AES-256-GCM, on this device</dd>
+          <dd>Tide policy-governed encryption, on this device</dd>
           <dt className="text-slate">Key</dt>
-          <dd>Split into {NODE_COUNT} shares; any {SHARE_THRESHOLD} rebuild it</dd>
+          <dd>Held by the Tide node network; no one holds it whole</dd>
           <dt className="text-slate">Opens when</dt>
           <dd>2 independent reports match and 2 of 3 stewards approve</dd>
           <dt className="text-slate">Deleted on</dt>
@@ -64,7 +64,7 @@ export function StepEscrow({ draft, update, now }: { draft: Draft; update: (patc
         <Field
           label="Withdrawal passphrase"
           htmlFor="passphrase"
-          hint={`At least ${MIN_PASSPHRASE_LENGTH} characters. Only a slow hash of it is stored, on the nodes. Nobody can reset it for you.`}
+          hint={`At least ${MIN_PASSPHRASE_LENGTH} characters. Only a slow hash of it is stored. Nobody can reset it for you.`}
         >
           <div className="flex gap-2">
             <div className="relative flex-1">

@@ -1,6 +1,5 @@
 import { randomBytes } from '@/escrow/bytes'
 import { textDoc, type RichDoc } from '@/escrow/richDoc'
-import type { ReportDraft } from '@/escrow/samples'
 import type { Subject } from '@/escrow/subject'
 
 export interface Draft {
@@ -26,17 +25,6 @@ export function emptyDraft(): Draft {
     passphrase: '',
     confirm: '',
     contact: '',
-  }
-}
-
-export function draftFromSample(sample: ReportDraft): Draft {
-  return {
-    ...emptyDraft(),
-    subject: { ...sample.subject },
-    incidentDate: sample.incidentDate,
-    content: sample.content,
-    text: (sample.content.content ?? []).map((p) => p.content?.[0]?.text ?? '').join('\n'),
-    contact: sample.contact,
   }
 }
 

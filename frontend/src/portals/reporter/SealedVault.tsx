@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { cn } from 'cn'
-import { useWorld } from '@/app/worldContext'
+import { reportStatus, withdrawReport } from '@/escrow/reportsApi'
 import { ThresholdLock } from '@/components/ThresholdLock'
 import { Button } from '@/components/ui/button'
-import { NODE_COUNT, REPORT_THRESHOLD, SHARE_THRESHOLD, formatBytes, type Receipt } from '@/escrow/simulation'
+import { REPORT_THRESHOLD, formatBytes, type Receipt } from '@/escrow/types'
 import { formatDate, formatDateTime } from '@/lib/format'
 
-type VaultState = 'waiting' | 'matched' | 'released' | 'withdrawn' | 'contact-removed' | 'expired'
+type VaultState = 'waiting' | 'matched' | 'withdrawn' | 'contact-removed' | 'gone'
 
 const HEADLINE: Record<VaultState, { pill: string; title: string; body: string }> = {
   waiting: {
@@ -18,53 +18,56 @@ const HEADLINE: Record<VaultState, { pill: string; title: string; body: string }
   matched: {
     pill: 'Threshold reached (2/2) · pending quorum',
     title: 'Someone else reported the same person.',
-    body: 'Both reports are still sealed. They open only when two of the three stewards approve, and then only for the independent investigator.',
-  },
-  released: {
-    pill: 'Released to the investigator',
-    title: 'The stewards approved. The investigator has both reports.',
-    body: 'Your report was decrypted together with the matching one, for the investigator only. The server and the admin still hold nothing readable.',
+    body: 'Both reports are still sealed. They open only when the stewards approve, and then only for the independent investigator.',
   },
   withdrawn: {
     pill: 'Destroyed',
     title: 'Your report no longer exists.',
-    body: `The ciphertext, its blinded token and all ${NODE_COUNT} key shares were deleted. Nothing about it can be recovered or matched.`,
+    body: `The ciphertext and its blinded token were deleted. Nothing about it can be recovered or matched.`,
   },
   'contact-removed': {
     pill: 'Matched · contact details removed',
     title: 'Your contact details were deleted.',
     body: 'This report is part of a matched case, so the report itself can no longer be withdrawn. Your optional contact details are gone.',
   },
-  expired: {
-    pill: 'Expired and deleted',
-    title: 'Nobody else reported this person in time.',
-    body: 'The report reached the end of its lifespan without a match and was permanently deleted, as you chose.',
+  gone: {
+    pill: 'No longer stored',
+    title: 'This report no longer exists.',
+    body: 'It was withdrawn, or reached the end of its lifespan without a match and was permanently deleted.',
   },
 }
 
 export function SealedVault({ receipt, passphrase, onNew }: { receipt: Receipt; passphrase: string; onNew: () => void }) {
-  const { world, snapshot } = useWorld()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [state, setState] = useState<VaultState>('waiting')
 
-  const live = snapshot.receipts.find((r) => r.reportId === receipt.reportId) ?? receipt
-  const caseId = snapshot.rows.find((r) => r.id === receipt.reportId)?.caseId
-  const summary = snapshot.cases.find((c) => c.caseId === caseId)
-  const state: VaultState =
-    live.status === 'withdrawn' ? 'withdrawn'
-    : live.status === 'expired' ? 'expired'
-    : live.status === 'contact-removed' ? 'contact-removed'
-    : caseId && snapshot.opened[caseId] ? 'released'
-    : summary?.eligible ? 'matched'
-    : 'waiting'
-  const gone = state === 'withdrawn' || state === 'expired'
+  const refresh = useCallback(() => {
+    return reportStatus(receipt.reportId, passphrase)
+      .then((status) =>
+        setState((s) => (s === 'withdrawn' || s === 'contact-removed' ? s : status === 'gone' ? 'gone' : status === 'eligible' ? 'matched' : 'waiting')),
+      )
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+  }, [receipt.reportId, passphrase])
+
+  useEffect(() => {
+    let cancelled = false
+    void reportStatus(receipt.reportId, passphrase)
+      .then((status) => !cancelled && setState(status === 'gone' ? 'gone' : status === 'eligible' ? 'matched' : 'waiting'))
+      .catch((e: unknown) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
+    return () => {
+      cancelled = true
+    }
+  }, [receipt.reportId, passphrase])
+
+  const gone = state === 'withdrawn' || state === 'gone'
   const copy = HEADLINE[state]
 
   async function destroy() {
     setBusy(true)
     setError(null)
     try {
-      await world.withdraw(receipt.reportId, passphrase)
+      setState((await withdrawReport(receipt.reportId, passphrase)) === 'deleted' ? 'withdrawn' : 'contact-removed')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -96,7 +99,7 @@ export function SealedVault({ receipt, passphrase, onNew }: { receipt: Receipt; 
                 className="mt-6"
                 tone="vault"
                 animate
-                reports={summary?.independentReporters ?? 1}
+                reports={state === 'matched' ? REPORT_THRESHOLD : 1}
                 reportsNeeded={REPORT_THRESHOLD}
               />
             )}
@@ -129,7 +132,7 @@ export function SealedVault({ receipt, passphrase, onNew }: { receipt: Receipt; 
           <p className="flex-1 text-[13px] text-vault-muted">
             {gone
               ? 'You can close this page. There is nothing left to protect.'
-              : `Write down ${receipt.reportId} and keep your passphrase. You need both to withdraw later, from any device. Key held as ${NODE_COUNT} shares; ${SHARE_THRESHOLD} rebuild it.`}
+              : `Write down ${receipt.reportId} and keep your passphrase. You need both to withdraw later, from any device.`}
           </p>
           <div className="flex flex-wrap gap-2">
             {state === 'waiting' && (
@@ -143,6 +146,9 @@ export function SealedVault({ receipt, passphrase, onNew }: { receipt: Receipt; 
                 {busy ? 'Removing…' : 'Remove my contact details'}
               </Button>
             )}
+            <Button variant="vault" onClick={() => void refresh()}>
+              Check status
+            </Button>
             <Button variant="vault" onClick={onNew}>
               File another report
             </Button>
@@ -156,8 +162,8 @@ export function SealedVault({ receipt, passphrase, onNew }: { receipt: Receipt; 
 
 /** The escrow box: a padlock whose shackle drops shut when the report is sealed. */
 function VaultGraphic({ state }: { state: VaultState }) {
-  const gone = state === 'withdrawn' || state === 'expired'
-  const open = state === 'released'
+  const gone = state === 'withdrawn' || state === 'gone'
+  const open = false
   return (
     <svg viewBox="0 0 220 220" className="mx-auto w-40 lg:w-full" role="img" aria-label={gone ? 'Empty vault' : open ? 'Vault opened' : 'Sealed vault'}>
       <rect x="20" y="20" width="180" height="180" rx="22" fill="#1b2538" />

@@ -1,5 +1,5 @@
 import { cn } from 'cn'
-import type { StewardId, StewardStance } from '@/escrow/simulation'
+import type { StewardId, StewardStance } from '@/escrow/types'
 import { SEAT_STYLE } from './seatStyle'
 
 /**
